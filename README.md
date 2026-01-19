@@ -1,4 +1,4 @@
-# MC ↔ Discord Chat Relay (Vanilla Bedrock, JS + pm2)
+# BedrockPhoenix
 
 A bidirectional chat relay between a **vanilla Minecraft Bedrock Dedicated Server (BDS)** and a **Discord text channel**.
 
@@ -16,11 +16,11 @@ This keeps inbound parsing modern and robust while using the server’s native i
 ## Quick start
 
 ### 1) Prereqs
-- Node.js 18+ (recommended)
+- Node.js 20+ (recommended)
 - `pm2` installed globally:
   - `npm i -g pm2`
 - A running Bedrock Dedicated Server that you can reach from the relay host
-- A Discord bot token (and message content intent enabled if you need it)
+- A Discord bot token (and message content intent enabled)
 
 ### 2) Run BDS under pm2
 You need BDS managed by pm2 so we can send stdin lines.

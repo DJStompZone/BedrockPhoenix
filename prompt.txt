@@ -1,0 +1,21 @@
+Build a Node.js (TypeScript) project that relays Minecraft Bedrock (vanilla BDS) chat ↔ a Discord channel.
+
+Key decisions:
+- Use discord.js v14 for Discord.
+- Use bedrock-protocol ONLY to connect to the Bedrock server as a listener client and capture inbound chat + presence signals.
+- Do NOT send chat into the game via bedrock-protocol.
+- For Discord → Minecraft, write to the Bedrock Dedicated Server STDIN via: pm2 send <processNameOrId> <argv...>.
+
+Project requirements:
+- Single encrypted JSON config file on disk (AES-256-GCM; password-based key via scrypt). Provide CLI to encrypt/validate config and prompt for password at runtime.
+- Robust loop prevention (marker + hash TTL LRU).
+- Rate limiting per direction (token bucket).
+- Message sanitization (strip MC (§_) formatting codes; resolve mentions/roles; collapse newlines).
+- Message splitting for Minecraft max length.
+- Robust player roster/presence tracking (player add/remove packets + heuristics + optional /list reconciliation via stdin when needed).
+- Reconnect/backoff with jitter for the bedrock-protocol listener.
+- Slash commands: /status, /reconnect (admin-only), /list, /kick (admin-only), /restart (admin-only)
+
+Repo includes high-quality README.md, see AGENTS.md for detailed spec, structure, tests, and security constraints. Implement tests for all pure logic and presence state machine.
+
+Deliver a production-ready repo: clean module structure, typed config schema, structured logging, and SOLID design principles.

@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import * as fs from "fs/promises";
+import * as path from "path";
 import prompts from "prompts";
 import { encryptConfig, decryptConfig } from "./config/crypto";
 import { Config, ConfigSchema, EncryptedConfig } from "./config/types";
@@ -230,9 +231,15 @@ program
       let outPath = options.out;
       if (outPath === "config/config.json") outPath = "config/config.enc.json";
 
+      const dir = path.dirname(outPath);
+      await fs.mkdir(dir, { recursive: true });
+
       await fs.writeFile(outPath, JSON.stringify(encrypted, null, 2));
       console.log(`\nSuccess! Encrypted config saved to ${outPath}`);
     } else {
+      const dir = path.dirname(options.out);
+      await fs.mkdir(dir, { recursive: true });
+
       await fs.writeFile(options.out, JSON.stringify(config, null, 2));
       console.log(`\nSuccess! Plain config saved to ${options.out}`);
       console.log(

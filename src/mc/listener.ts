@@ -88,6 +88,8 @@ export class Listener extends EventEmitter {
       this.client.on("player_list", (packet) => {
         // records: { xuid, username, uuid, ... }[]
         const records = packet.records;
+        if (!records || !Array.isArray(records)) return;
+
         for (const r of records) {
           if (packet.type === "add") {
             this.presence.addPlayer(r.xuid, r.username);

@@ -1,0 +1,34 @@
+{
+  "discord": {
+    "token": "YOUR_BOT_TOKEN",
+    "guildId": "YOUR_GUILD_ID",
+    "channelId": "YOUR_CHANNEL_ID",
+    "adminUserIds": ["OPTIONAL_ADMIN_ID"]
+  },
+  "minecraft": {
+    "host": "127.0.0.1",
+    "port": 19132,
+    "botName": "RelayBot"
+  },
+  "pm2": {
+    "target": "bds-server",
+    "sendArgsTemplate": [
+      "/tellraw",
+      "@a",
+      "{\"rawtext\":[{\"text\":\"[Discord] \"},{\"text\":\"§b{username}§r: {message}\"}]}"
+    ]
+  },
+  "relay": {
+    "mentionPolicy": "none",
+    "maxDiscordLen": 1800,
+    "maxMcLen": 200,
+    "rateLimitPerSec": 2,
+    "rateLimitBurst": 5,
+    "dedupeTtlSec": 30,
+    "dedupeMaxEntries": 200
+  },
+  "observability": {
+    "logLevel": "info",
+    "logHuman": true
+  }
+}

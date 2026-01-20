@@ -6,3 +6,4 @@ config/config.enc.json
 .env
 coverage/
 .DS_Store
+auth_cache/

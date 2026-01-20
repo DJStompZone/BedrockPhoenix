@@ -54,19 +54,6 @@ export class RelayCore {
     this.mc.on("chat", async (user, message, xuid) => {
       // 1. Dedupe
       const hash = `${user}:${message}`;
-      // Note: hash collision possible? simple string concat.
-      // Better: crypto hash or separator.
-      // But spec says "stable (sha256 truncated ok)".
-      // Let's rely on simple string or if needed update dedupe to hash.
-      // Given dedupe is "internal implementation", passing string key is fine.
-
-      // We check if WE sent this message (loop prevention via marker)
-      // If message contains relay.marker? Spec mentions "relay.marker".
-      // But we send to stdin. Stdin -> Chat ?
-      // If we send via /say, it comes as "[Server] ...".
-      // If we send via /tellraw, it comes as whatever we formatted.
-      // We should check if it matches our outbound format.
-      // Or just rely on dedupe.
 
       if (!this.dedupe.shouldRelay(hash)) return;
 
@@ -129,30 +116,6 @@ export class RelayCore {
       return arg.replace("{username}", user).replace("{message}", message);
     });
 
-    // Add to dedupe cache so we don't echo back if MC broadcasts it
-    // What does MC broadcast?
-    // If we use /tellraw, it shows to players. Does it go to socket/listener?
-    // Usually /tellraw does NOT trigger a chat packet in bedrock-protocol (it's text packet, strictly).
-    // Listener handles 'text' packet.
-    // If /tellraw triggers text packet, we might echo.
-    // We should hash the EXPECTED output.
-    // But we don't know exactly how MC formats it unless we know the rawtext structure.
-    // Wait, if we send /tellraw, the packet we receive will assume the "message" part of the packet match?
-    // Deduping on "message content" might be enough if user name is part of it.
-    // Or we just rely on "Sender" check.
-    // if source is "Server" or empty?
-    // For now, let's cache the message content if possible or the user+message key.
-
-    // Let's add the message part to dedupe just in case.
-    // But if we send "Hello", and user says "Hello", we shouldn't block user.
-    // So dedupe should be strict.
-    // If we receive the EXACT SAME message from "External" source, good to block?
-    // "ignore messages whose hash matches recently relayed outbound" matches this.
-
-    // We'll approximate the echo by hashing what we expect the listener to see.
-    // If using rawtext `[Discord] User: Msg`, listener might see `[Discord] User: Msg`.
-    // So we hash that.
-    // But we don't know the full format easily without parsing the JSON template.
 
     try {
       await pm2Send(this.pm2Id, args);

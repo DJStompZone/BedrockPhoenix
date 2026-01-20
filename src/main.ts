@@ -58,7 +58,7 @@ async function main() {
     const relay = new RelayCore(config, discord, mc, presence, logger);
 
     logger.info("Starting Relay...");
-    relay.start();
+    await relay.start();
 
     // Handle signals
     process.on("SIGINT", () => {

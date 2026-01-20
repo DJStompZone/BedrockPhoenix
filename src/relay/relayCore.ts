@@ -11,10 +11,13 @@ import { sanitizeDiscordToMc, stripMcFormatting } from "./sanitize";
 import { splitMessage } from "./split";
 import { ChatInputCommandInteraction } from "discord.js";
 
+import { resolvePm2Id } from "../pm2/resolve";
+
 export class RelayCore {
   private dedupe: Dedupe;
   private mcRateLimit: TokenBucket;
   private discordRateLimit: TokenBucket;
+  private pm2Id: string;
 
   constructor(
     private readonly config: Config,
@@ -37,9 +40,16 @@ export class RelayCore {
       this.config.relay.rateLimitBurst,
       this.config.relay.rateLimitPerSec
     );
+
+    this.pm2Id = this.config.pm2.target;
   }
 
-  public start() {
+  public async start() {
+    this.pm2Id = await resolvePm2Id(this.config.pm2.target);
+    this.logger?.info(
+      `Relay: Resolved PM2 target '${this.config.pm2.target}' to ID ${this.pm2Id}`
+    );
+
     // MC -> Discord
     this.mc.on("chat", async (user, message, xuid) => {
       // 1. Dedupe
@@ -145,7 +155,7 @@ export class RelayCore {
     // But we don't know the full format easily without parsing the JSON template.
 
     try {
-      await pm2Send(this.config.pm2.target, args);
+      await pm2Send(this.pm2Id, args);
     } catch (err) {
       if (this.logger)
         this.logger.error({ err }, "Relay: Failed to send to MC");
@@ -181,7 +191,7 @@ Rate Limits: OK`,
       const player = interaction.options.getString("player", true);
       const reason =
         interaction.options.getString("reason") || "Kicked by admin";
-      await pm2Send(this.config.pm2.target, ["/kick", `"${player}"`, reason]);
+      await pm2Send(this.pm2Id, ["/kick", `"${player}"`, reason]);
       await interaction.reply({
         content: `Kicked ${player}.`,
         ephemeral: true,
@@ -191,14 +201,12 @@ Rate Limits: OK`,
         content: "Restarting server process...",
         ephemeral: true,
       });
-      await pm2Send(this.config.pm2.target, ["/stop"]);
-      // Usually /stop stops the server. PM2 should restart it.
-      // Or `pm2 restart <id>`?
-      // If we are INSIDE a pm2 process (the relay), we can use pm2 API to restart the OTHER process.
-      // But `pm2 send` communicates with the process.
-      // `pm2 restart` is a CLI command.
-      // We can spawn(`pm2`, [`restart`, target])
-      spawn("pm2", ["restart", this.config.pm2.target]);
+
+      await pm2Send(this.pm2Id, ["/stop"]);
+      // Reuse spawn for restart logic, maybe wait a bit?
+      // For restart, we might need the original name if we use 'pm2 restart <name>'?
+      // But ID works for restart too.
+      spawn("pm2", ["restart", this.pm2Id]);
     }
   }
 }

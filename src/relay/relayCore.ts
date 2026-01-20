@@ -111,14 +111,23 @@ export class RelayCore {
     // Template: ["/tellraw", "@a", "{\"rawtext\":...}"]
     // We need to substitute {username} and {message}
 
+    // IMPORTANT: Inputs must be JSON-escaped because they are often injected into a JSON string in value.
+    const cleanUser = JSON.stringify(user).slice(1, -1);
+    const cleanMsg = JSON.stringify(message).slice(1, -1);
+
     const template = this.config.pm2.sendArgsTemplate;
     const args = template.map((arg) => {
-      return arg.replace("{username}", user).replace("{message}", message);
+      // Replace with escaped values
+      return arg
+        .replace("{username}", cleanUser)
+        .replace("{message}", cleanMsg);
     });
 
+    // Join args into a single command string for pm2 send
+    const command = args.join(" ");
 
     try {
-      await pm2Send(this.pm2Id, args);
+      await pm2Send(this.pm2Id, [command]);
     } catch (err) {
       if (this.logger)
         this.logger.error({ err }, "Relay: Failed to send to MC");
@@ -154,7 +163,8 @@ Rate Limits: OK`,
       const player = interaction.options.getString("player", true);
       const reason =
         interaction.options.getString("reason") || "Kicked by admin";
-      await pm2Send(this.pm2Id, ["/kick", `"${player}"`, reason]);
+      const cmd = `/kick "${player}" "${reason}"`;
+      await pm2Send(this.pm2Id, [cmd]);
       await interaction.reply({
         content: `Kicked ${player}.`,
         ephemeral: true,

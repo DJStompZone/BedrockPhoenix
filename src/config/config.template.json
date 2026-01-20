@@ -1,0 +1,30 @@
+{
+  "discord": {
+    "token": "DISCORD_BOT_TOKEN",
+    "guildId": "123456789012345678",
+    "channelId": "123456789012345678",
+    "adminUserIds": ["123456789012345678"]
+  },
+  "minecraft": {
+    "host": "127.0.0.1",
+    "port": 19132,
+    "botName": "PhoenixRelay"
+  },
+  "pm2": {
+    "target": "bds",
+    "sendArgsTemplate": ["/tellraw", "@a", "[{username}] {message}"]
+  },
+  "relay": {
+    "mentionPolicy": "users",
+    "maxDiscordLen": 1800,
+    "maxMcLen": 240,
+    "rateLimitPerSec": 3,
+    "rateLimitBurst": 6,
+    "dedupeTtlSec": 30,
+    "dedupeMaxEntries": 200
+  },
+  "observability": {
+    "logLevel": "info",
+    "logHuman": false
+  }
+}

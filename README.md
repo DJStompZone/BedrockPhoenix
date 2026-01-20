@@ -16,6 +16,7 @@ This keeps inbound parsing modern and robust while using the server’s native i
 ## Quick start
 
 ### 1) Prereqs
+
 - Node.js 20+ (recommended)
 - `pm2` installed globally:
   - `npm i -g pm2`
@@ -23,6 +24,7 @@ This keeps inbound parsing modern and robust while using the server’s native i
 - A Discord bot token (and message content intent enabled)
 
 ### 2) Run BDS under pm2
+
 You need BDS managed by pm2 so we can send stdin lines.
 
 Example:
@@ -35,18 +37,20 @@ pm2 save
 > Important: this project assumes your pm2 version supports `pm2 send <id|name> <argv...>` forwarding to the process STDIN (see Troubleshooting if it doesn’t).
 
 ### 3) Install and build
+
 ```bash
 npm install
 npm run build
 ```
 
 ### 4) Configure
+
 This project uses **one single encrypted JSON config file** on disk.
 
 Create a config (plaintext template is provided) then encrypt it:
 
 ```bash
-cp config/config.template.json config/config.json
+cp config.template.json config/config.json
 node dist/cli.js encrypt-config --in config/config.json --out config/config.enc.json
 ```
 
@@ -81,10 +85,12 @@ All user configuration lives in one JSON object. The encrypted file contains:
   - dedupe TTL / sizes
   - message length limits
 
-See `config/config.template.json`.
+See `config.template.json`.
 
 ### Encryption
+
 Config encryption is required:
+
 - Use a password provided by the user at runtime.
 - Derive key using `scrypt` (or `argon2` if chosen) with a per-file salt.
 - Encrypt using **AES-256-GCM** with random nonce/IV.
@@ -95,12 +101,14 @@ Config encryption is required:
 ## Runtime behavior
 
 ### Minecraft → Discord
+
 - Bridge joins the server with `bedrock-protocol`
 - On chat packet, relay to Discord as: `**<mc_user>**: message`
 - Strip Minecraft formatting codes (`§x` sequences)
 - Suppress relay markers / self-generated loops
 
 ### Discord → Minecraft
+
 - On new Discord message in configured channel **not from the bot**
 - Sanitize:
   - collapse newlines
@@ -117,9 +125,9 @@ Config encryption is required:
 
 We maintain a robust online player roster by combining:
 
-1) **Bedrock protocol player list / add / remove signals** (preferred)
-2) **Heuristic join/leave detection** from chat/system messages (fallback)
-3) Optional periodic `/list` poll via stdin, parsing the server response to reconcile (configurable)
+1. **Bedrock protocol player list / add / remove signals** (preferred)
+2. **Heuristic join/leave detection** from chat/system messages (fallback)
+3. Optional periodic `/list` poll via stdin, parsing the server response to reconcile (configurable)
 
 This yields a resilient model even across reconnects and packet quirks.
 
@@ -148,15 +156,19 @@ npm run lint
 ## Troubleshooting
 
 ### “pm2 send” doesn’t write to stdin
+
 Different pm2 builds/versions behave differently. This project expects the newer behavior where `pm2 send` forwards argv to process stdin for non-node apps as well. If your pm2 doesn’t, the app should:
+
 - Detect unsupported behavior at startup (self-test)
 - Fail loudly with clear remediation instructions
 
 Possible remediation paths:
+
 - upgrade pm2
 - run a tiny “stdin forwarder” process under pm2 that pipes pm2 messages to the BDS stdin (documented in AGENTS.md)
 
 ### Bridge can’t join the server
+
 - Ensure `host:port` is reachable (UDP)
 - Confirm server allows the bridge name / slots available
 - Review logs (JSON structured logs by default)
@@ -164,4 +176,5 @@ Possible remediation paths:
 ---
 
 ## License
+
 MIT (or your preferred license).

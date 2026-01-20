@@ -74,19 +74,63 @@ export class Listener extends EventEmitter {
           "Minecraft Packet: Text"
         );
 
+        // Check for JSON types without source/message (sometimes source is in the JSON)
+        // or just standard handling.
+        let msgContent = message;
+        let sender = source;
+
+        // Try to parse JSON if type suggests it or it looks like JSON
         if (
-          (type === "chat" || type === "translation" || type === "json") &&
-          source &&
-          message
+          type === "json" ||
+          type === "json_whisper" ||
+          (typeof message === "string" && message.startsWith("{"))
         ) {
-          // Standard chat
-          if (xuid) this.presence.touch(xuid);
+          try {
+            const parsed = JSON.parse(message);
+            if (parsed.rawtext && Array.isArray(parsed.rawtext)) {
+              msgContent = parsed.rawtext.map((rt: any) => rt.text).join("");
+            }
+          } catch (e) {
+            // Ignore, treat as plain text
+          }
+        }
 
-          // Fix for behavior pack shifted chars
-          const cleanMessage = this.unshiftText(message);
-          const cleanSource = this.unshiftText(source);
+        if (
+          (type === "chat" ||
+            type === "translation" ||
+            type === "json" ||
+            type === "json_whisper") &&
+          msgContent
+        ) {
+          // If sender is missing, try to extract from message ("<User> Msg")
+          if (!sender) {
+            const match = msgContent.match(/^<([^>]+)>\s*(.*)$/);
+            if (match) {
+              sender = match[1];
+              msgContent = match[2];
+            }
+          }
 
-          this.emit("chat", cleanSource, cleanMessage, xuid);
+          if (!sender) {
+            // Fallback or ignore? Relay needs a user.
+            // Maybe it's a system message?
+            // Let's log and maybe skip or send as "System"
+            // For now, skip if no sender? Or use "Server"?
+            // The user log shows <MooSaurus25>.
+            // Wait, the unshift might be needed BEFORE extracting user if user is also shifted?
+            // Log shows: <MooSaurus25> <ShiftedMsg>.
+            // So user is NOT shifted, but msg is?
+            // Use unshiftText on everything just in case.
+          }
+
+          if (sender) {
+            if (xuid) this.presence.touch(xuid);
+
+            const cleanMessage = this.unshiftText(msgContent);
+            const cleanSource = this.unshiftText(sender);
+
+            this.emit("chat", cleanSource, cleanMessage, xuid);
+          }
         } else if (
           type === "shout" ||
           type === "whisper" ||

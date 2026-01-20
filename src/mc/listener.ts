@@ -67,21 +67,31 @@ export class Listener extends EventEmitter {
         const message = packet.message;
         const xuid = packet.xuid;
 
+        // Debug Log
+        this.logger.debug(
+          { type, source, message, xuid },
+          "Minecraft Packet: Text"
+        );
+
         if (type === "chat" && source && message) {
           // Standard chat
           if (xuid) this.presence.touch(xuid);
-          // Strip formatting?
-          // We emit raw or stripped?
-          // Relay logic usually handles stripping.
-          // But here is good too.
-          this.emit("chat", source, message, xuid);
+
+          // Fix for behavior pack shifted chars
+          const cleanMessage = this.unshiftText(message);
+          const cleanSource = this.unshiftText(source);
+
+          this.emit("chat", cleanSource, cleanMessage, xuid);
         } else if (
           type === "shout" ||
           type === "whisper" ||
           type === "announcement"
         ) {
           // Handle if needed
-          if (source && message) this.emit("chat", source, message, xuid);
+          const cleanMessage = this.unshiftText(message);
+          const cleanSource = source ? this.unshiftText(source) : source;
+          if (source && message)
+            this.emit("chat", cleanSource, cleanMessage, xuid);
         }
       });
 
@@ -126,5 +136,27 @@ export class Listener extends EventEmitter {
       this.reconnectTimeout = undefined;
       this.connect();
     }, delay);
+  }
+
+  private unshiftText(text: string): string {
+    // Detects characters shifted by 10240 (0x2800) and unshifts them
+    return text
+      .split("")
+      .map((c) => {
+        const code = c.charCodeAt(0);
+        if (code >= 0x2800 && code < 0x2800 + 0xffff) {
+          // Simple check, exact range unknown but user said 10240
+          // Actually, if it's just shifted, let's see.
+          // ASCII space (32) + 10240 = 10272
+          // Let's assume ANY char > 10240 might be shifted if the pack does it blindly.
+          // But let's check if unshifting brings it to printable ASCII range?
+          const unshifted = code - 10240;
+          if (unshifted >= 32 && unshifted <= 126) {
+            return String.fromCharCode(unshifted);
+          }
+        }
+        return c;
+      })
+      .join("");
   }
 }

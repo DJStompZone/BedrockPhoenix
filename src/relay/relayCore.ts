@@ -1,5 +1,6 @@
 import { Config } from "../config/types";
 import { spawn } from "child_process";
+import { Logger } from "../logger";
 import { DiscordBot } from "../discord/client";
 import { Listener } from "../mc/listener";
 import { Presence } from "../mc/presence";
@@ -19,7 +20,8 @@ export class RelayCore {
     private readonly config: Config,
     private readonly discord: DiscordBot,
     private readonly mc: Listener,
-    private readonly presence: Presence
+    private readonly presence: Presence,
+    private readonly logger?: Logger
   ) {
     this.dedupe = new Dedupe(
       this.config.relay.dedupeTtlSec * 1000,
@@ -63,7 +65,7 @@ export class RelayCore {
 
       // 3. Rate Limit
       if (!this.discordRateLimit.consume()) {
-        console.warn("Relay: Rate limit hit (MC->DC)");
+        this.logger?.warn("Relay: Rate limit hit (MC->DC)");
         return;
       }
 
@@ -145,7 +147,9 @@ export class RelayCore {
     try {
       await pm2Send(this.config.pm2.target, args);
     } catch (err) {
-      console.error("Relay: Failed to send to MC", err);
+      if (this.logger)
+        this.logger.error({ err }, "Relay: Failed to send to MC");
+      else console.error("Relay: Failed to send to MC", err);
     }
   }
 

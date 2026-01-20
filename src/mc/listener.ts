@@ -3,6 +3,8 @@ import { EventEmitter } from "events";
 import { Config } from "../config/types";
 import { Presence } from "./presence";
 import { stripMcFormatting } from "../relay/sanitize";
+import { Logger } from "../logger";
+import * as path from "path";
 
 export class Listener extends EventEmitter {
   private client?: Client;
@@ -11,7 +13,8 @@ export class Listener extends EventEmitter {
 
   constructor(
     private readonly config: Config,
-    private readonly presence: Presence
+    private readonly presence: Presence,
+    private readonly logger: Logger
   ) {
     super();
   }
@@ -19,22 +22,31 @@ export class Listener extends EventEmitter {
   public connect() {
     this.shouldReconnect = true;
     try {
+      this.logger.info(
+        `Connecting to Minecraft server at ${this.config.minecraft.host}:${this.config.minecraft.port}...`
+      );
+
       this.client = createClient({
         host: this.config.minecraft.host,
         port: this.config.minecraft.port,
         username: this.config.minecraft.botName,
-        offline: true, // Listener usually doesn't need auth if server allows
-        // If server has online-mode=true, we need real auth.
-        // Spec implies "listener client", often implies phantom/bot.
-        // We'll assume offline for now or add config later.
+        offline: false, // Online mode for Xbox Live Auth
+        profilesFolder: path.join(process.cwd(), "auth_cache"), // Persist auth
         skipPing: false,
+        onMsaCode: (data: any) => {
+          this.logger.warn(
+            `\n\n[XBOX AUTH ACTION REQUIRED]\nOpen ${data.verification_uri} and enter code: ${data.user_code}\n\n`
+          );
+        },
       });
 
       this.client.on("join", () => {
+        this.logger.info("Minecraft: Joined server successfully.");
         this.emit("connect");
       });
 
       this.client.on("close", () => {
+        this.logger.warn("Minecraft: Connection closed.");
         this.emit("disconnect");
         if (this.shouldReconnect) {
           this.scheduleReconnect();
@@ -42,8 +54,8 @@ export class Listener extends EventEmitter {
       });
 
       this.client.on("error", (err) => {
+        this.logger.error({ err }, "Minecraft: Connection error");
         this.emit("error", err);
-        // Error usually triggers close too?
       });
 
       this.client.on("text", (packet) => {
@@ -107,7 +119,7 @@ export class Listener extends EventEmitter {
   private scheduleReconnect() {
     if (this.reconnectTimeout) return;
     const delay = Math.random() * 5000 + 5000; // 5-10s jitter
-    console.log(`Reconnecting in ${Math.floor(delay)}ms...`);
+    this.logger.info(`Minecraft: Reconnecting in ${Math.floor(delay)}ms...`);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = undefined;
       this.connect();

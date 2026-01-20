@@ -68,12 +68,17 @@ export class Listener extends EventEmitter {
         const xuid = packet.xuid;
 
         // Debug Log
-        this.logger.debug(
+        // Debug Log
+        this.logger.info(
           { type, source, message, xuid },
           "Minecraft Packet: Text"
         );
 
-        if (type === "chat" && source && message) {
+        if (
+          (type === "chat" || type === "translation" || type === "json") &&
+          source &&
+          message
+        ) {
           // Standard chat
           if (xuid) this.presence.touch(xuid);
 
